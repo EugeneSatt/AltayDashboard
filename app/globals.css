@@ -1542,112 +1542,42 @@ html[data-theme="dark"] .orders-day-badge.down {
 
   .table-scroll,
   .brand-table-scroll {
-    border: none;
-    background: transparent;
-    overflow: visible;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 16px;
   }
 
-  .dashboard-table,
-  .dashboard-table thead,
-  .dashboard-table tbody,
-  .dashboard-table tr,
-  .dashboard-table th,
-  .dashboard-table td,
-  .brand-table,
-  .brand-table thead,
-  .brand-table tbody,
-  .brand-table tr,
-  .brand-table th,
-  .brand-table td {
-    display: block;
+  .dashboard-table {
+    min-width: 1180px;
   }
 
-  .dashboard-table,
   .brand-table {
-    min-width: 0;
+    min-width: 1500px;
   }
 
-  .dashboard-table thead,
-  .brand-table thead {
-    display: none;
-  }
-
-  .dashboard-table tbody,
-  .brand-table tbody {
-    display: grid;
-    gap: 12px;
-  }
-
-  .dashboard-table tbody tr,
-  .brand-table tbody tr {
-    overflow: hidden;
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    background: var(--panel-strong);
-    box-shadow: 0 12px 28px rgba(43, 66, 48, 0.08);
-  }
-
-  html[data-theme="dark"] .dashboard-table tbody tr,
-  html[data-theme="dark"] .brand-table tbody tr {
-    background: rgba(18, 28, 24, 0.96);
-    box-shadow: none;
+  .dashboard-table thead th,
+  .brand-table thead th {
+    top: 0;
+    z-index: 3;
   }
 
   .dashboard-table tbody td,
   .brand-table tbody td {
-    display: grid;
-    grid-template-columns: minmax(110px, 42%) 1fr;
-    gap: 10px;
-    align-items: center;
-    padding: 10px 12px;
-    border-bottom: 1px solid rgba(53, 78, 59, 0.08);
-    text-align: right;
+    white-space: nowrap;
+  }
+
+  .dashboard-table .product-cell {
+    min-width: 260px;
+    max-width: 340px;
+  }
+
+  .dashboard-table .cell-title {
     white-space: normal;
   }
 
-  .dashboard-table tbody td::before,
-  .brand-table tbody td::before {
-    content: attr(data-label);
-    color: var(--muted);
-    font-size: 0.78rem;
-    font-weight: 800;
-    letter-spacing: 0.06em;
-    text-align: left;
-    text-transform: uppercase;
-  }
-
-  .dashboard-table tbody td:first-child,
-  .brand-table tbody td:first-child {
-    background:
-      linear-gradient(135deg, rgba(42, 127, 130, 0.12), rgba(169, 106, 43, 0.08)),
-      var(--panel-strong);
-  }
-
-  .dashboard-table tbody td:last-child,
-  .brand-table tbody td:last-child {
-    border-bottom: none;
-  }
-
-  .dashboard-table tbody td[data-label="Product"] {
-    grid-template-columns: 1fr;
-    text-align: left;
-  }
-
-  .dashboard-table tbody td[data-label="Product"]::before {
-    margin-bottom: 2px;
-  }
-
-  .dashboard-table tbody td.orders-column-cell,
-  .dashboard-table tbody td.orders-total-cell {
-    background: transparent;
-  }
-
   .orders-day-badge {
-    justify-self: end;
-  }
-
-  .brand-table .brand-value-strong::before {
-    margin-right: 5px;
+    justify-self: auto;
   }
 }
 
@@ -1661,22 +1591,11 @@ html[data-theme="dark"] .orders-day-badge.down {
     grid-template-columns: 1fr;
   }
 
-  .dashboard-table tbody td,
-  .brand-table tbody td {
-    grid-template-columns: 1fr;
-    text-align: left;
+  .dashboard-table {
+    min-width: 1080px;
   }
 
-  .dashboard-table tbody td::before,
-  .brand-table tbody td::before {
-    margin-bottom: -4px;
-  }
-
-  .numeric {
-    text-align: left;
-  }
-
-  .orders-day-badge {
-    justify-self: start;
+  .brand-table {
+    min-width: 1380px;
   }
 }
