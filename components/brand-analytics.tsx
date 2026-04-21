@@ -579,46 +579,58 @@ export function BrandAnalytics({
           <tbody>
             {brandSummaries.map((summary) => (
               <tr key={summary.label}>
-                <td>
+                <td data-label="Бренд">
                   <strong>{summary.label}</strong>
                   <div className="cell-subtitle">
                     WB SKU: {formatNumber(summary.wbSkus)} · Ozon SKU:{' '}
                     {formatNumber(summary.ozonSkus)}
                   </div>
                 </td>
-                <td className="numeric brand-value-strong orders">
+                <td className="numeric brand-value-strong orders" data-label="Заказы">
                   {formatNumber(summary.orders)}
                 </td>
-                <td className="numeric brand-value-strong share">
+                <td className="numeric brand-value-strong share" data-label="Доля">
                   {formatPlainPercent(summary.ordersShare)}
                 </td>
-                <td className="numeric">{formatNumber(summary.stock)}</td>
-                <td className="numeric brand-value-strong coverage">
+                <td className="numeric" data-label="Остаток">
+                  {formatNumber(summary.stock)}
+                </td>
+                <td className="numeric brand-value-strong coverage" data-label="ТЗ">
                   {formatCoverageDays(summary.coverageDays)}
                 </td>
-                <td className="numeric">{formatDecimal(summary.averageDailyOrders)}</td>
-                <td className="numeric brand-value-strong price">
+                <td className="numeric" data-label="Сред./день">
+                  {formatDecimal(summary.averageDailyOrders)}
+                </td>
+                <td className="numeric brand-value-strong price" data-label="Сред. цена">
                   {formatMoney(summary.averagePrice)}
                 </td>
-                <td className="numeric brand-value-strong spp">
+                <td className="numeric brand-value-strong spp" data-label="Сред. СПП">
                   {formatMoney(summary.averagePriceWithSpp)}
                 </td>
-                <td className="numeric brand-value-strong discount">
+                <td className="numeric brand-value-strong discount" data-label="СПП %">
                   {formatPlainPercent(summary.sppDiscountPercent)}
                 </td>
-                <td className="numeric brand-value-strong revenue">
+                <td className="numeric brand-value-strong revenue" data-label="Выручка">
                   {formatMoney(summary.revenue)}
                 </td>
-                <td className="numeric brand-value-strong revenue-spp">
+                <td className="numeric brand-value-strong revenue-spp" data-label="Выручка СПП">
                   {formatMoney(summary.revenueWithSpp)}
                 </td>
-                <td className="numeric">{formatNumber(summary.wbOrders)}</td>
-                <td className="numeric">{formatNumber(summary.ozonOrders)}</td>
-                <td className="numeric">{formatNumber(summary.skuCount)}</td>
-                <td className="numeric brand-value-strong risk">
+                <td className="numeric" data-label="WB">
+                  {formatNumber(summary.wbOrders)}
+                </td>
+                <td className="numeric" data-label="Ozon">
+                  {formatNumber(summary.ozonOrders)}
+                </td>
+                <td className="numeric" data-label="SKUs">
+                  {formatNumber(summary.skuCount)}
+                </td>
+                <td className="numeric brand-value-strong risk" data-label="Без продаж">
                   {formatNumber(summary.skuWithoutSales)}
                 </td>
-                <td className="numeric">{formatDecimal(summary.turnover)}</td>
+                <td className="numeric" data-label="Оборач.">
+                  {formatDecimal(summary.turnover)}
+                </td>
               </tr>
             ))}
           </tbody>

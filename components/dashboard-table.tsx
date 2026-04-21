@@ -162,10 +162,10 @@ export function DashboardTable({
 
               return (
                 <tr key={row.productKey}>
-                  <td>
+                  <td data-label="Marketplace">
                     <span className="marketplace-pill">{row.marketplace}</span>
                   </td>
-                  <td>
+                  <td data-label="Product">
                     <div className="product-cell">
                       <div className="product-thumb-wrap">
                         {row.imageUrl ? (
@@ -210,13 +210,19 @@ export function DashboardTable({
                       </div>
                     </div>
                   </td>
-                  <td>{row.brand ?? '—'}</td>
-                  <td>{getSkuValue(row)}</td>
-                  <td>{getMarketplaceArticle(row)}</td>
-                  <td className="numeric">{row.stock ?? '—'}</td>
-                  <td className="numeric">{formatStockCoverageDays(row, dates.length)}</td>
-                  <td className="numeric">{formatMoney(row.price, row.currency)}</td>
-                  <td className="numeric orders-total-cell">
+                  <td data-label="Бренд">{row.brand ?? '—'}</td>
+                  <td data-label="sku">{getSkuValue(row)}</td>
+                  <td data-label="Артикул WB/OZ">{getMarketplaceArticle(row)}</td>
+                  <td className="numeric" data-label="Stock">
+                    {row.stock ?? '—'}
+                  </td>
+                  <td className="numeric" data-label="ТЗ">
+                    {formatStockCoverageDays(row, dates.length)}
+                  </td>
+                  <td className="numeric" data-label="Price">
+                    {formatMoney(row.price, row.currency)}
+                  </td>
+                  <td className="numeric orders-total-cell" data-label="Orders total">
                     <strong>{row.ordersTotal}</strong>
                   </td>
                   {dates.map((date, index) => {
@@ -228,6 +234,7 @@ export function DashboardTable({
                     return (
                       <td
                         className="numeric orders-column-cell"
+                        data-label={formatDateLabel(date)}
                         key={`${row.productKey}-${date}`}
                       >
                         <span className={`orders-day-badge ${tone}`}>
