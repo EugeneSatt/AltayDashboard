@@ -2,6 +2,11 @@
 
 import { DragScroll } from '@/components/drag-scroll';
 import { createCanonicalBrandMap, getCanonicalBrand } from '@/lib/brands';
+import {
+  getComparisonDateRanges,
+  getDeltaPercent,
+  getRevenueTone
+} from '@/lib/dashboard-dynamics';
 import type { DashboardRow, Marketplace } from '@/types/dashboard';
 
 type BrandAnalyticsProps = {
@@ -216,30 +221,6 @@ function summarizeBrands(rows: DashboardRow[], dates: string[], denominatorOrder
     .sort((left, right) => right.orders - left.orders || right.revenue - left.revenue);
 }
 
-function getComparisonDates(dates: string[]) {
-  const rangeSize = Math.floor(dates.length / 2);
-
-  if (rangeSize < 1) {
-    return null;
-  }
-
-  const comparableDates = dates.slice(dates.length - rangeSize * 2);
-
-  return {
-    previous: comparableDates.slice(0, rangeSize),
-    current: comparableDates.slice(rangeSize),
-    rangeSize
-  };
-}
-
-function getDeltaPercent(current: number, previous: number) {
-  if (previous === 0) {
-    return current === 0 ? 0 : null;
-  }
-
-  return ((current - previous) / previous) * 100;
-}
-
 function createComparison(
   label: string,
   rows: DashboardRow[],
@@ -364,11 +345,7 @@ function getDeltaTone(value: number | null) {
 }
 
 function getRevenueComparisonTone(comparison: Comparison) {
-  if (comparison.currentRevenue === comparison.previousRevenue) {
-    return 'same';
-  }
-
-  return comparison.currentRevenue > comparison.previousRevenue ? 'up' : 'down';
+  return getRevenueTone(comparison.currentRevenue, comparison.previousRevenue);
 }
 
 function SummaryMetric({
@@ -500,7 +477,7 @@ export function BrandAnalytics({
       denominatorOrders
     )
   ];
-  const comparisonDates = getComparisonDates(dates);
+  const comparisonDates = getComparisonDateRanges(dates);
   const brandRevenueComparisons = comparisonDates
     ? createBrandComparisonMap(rows, comparisonDates.previous, comparisonDates.current)
     : new Map<string, Comparison>();

@@ -1,14 +1,18 @@
 import type {
   BrandOption,
   DashboardFiltersState,
+  DynamicFilter,
   MarketplaceFilter
 } from '@/types/dashboard';
+import { PERIOD_DAY_OPTIONS } from '@/lib/date/range';
 
 type DashboardFiltersProps = {
   filters: DashboardFiltersState;
   brandOptions: BrandOption[];
   isRefreshing: boolean;
+  periodDays: number;
   onBrandChange: (brand: string) => void;
+  onDynamicChange: (dynamic: DynamicFilter) => void;
   onMarketplaceChange: (marketplace: MarketplaceFilter) => void;
   onPeriodDaysChange: (periodDays: number) => void;
   onSearchChange: (value: string) => void;
@@ -19,7 +23,9 @@ export function DashboardFilters({
   filters,
   brandOptions,
   isRefreshing,
+  periodDays,
   onBrandChange,
+  onDynamicChange,
   onMarketplaceChange,
   onPeriodDaysChange,
   onSearchChange,
@@ -60,15 +66,32 @@ export function DashboardFilters({
         </label>
 
         <label className="filter-field">
-          <span className="filter-label">Период, дней (до 14)</span>
-          <input
-            className="input"
-            type="number"
-            min={1}
-            max={14}
-            value={filters.periodDays}
+          <span className="filter-label">Динамика SKU</span>
+          <select
+            className="select"
+            value={filters.dynamic}
+            onChange={(event) => onDynamicChange(event.target.value as DynamicFilter)}
+          >
+            <option value="all">Вся динамика</option>
+            <option value="down">Падение</option>
+            <option value="up">Рост</option>
+            <option value="same">Без изменений</option>
+          </select>
+        </label>
+
+        <label className="filter-field">
+          <span className="filter-label">Период</span>
+          <select
+            className="select"
+            value={periodDays}
             onChange={(event) => onPeriodDaysChange(Number(event.target.value))}
-          />
+          >
+            {PERIOD_DAY_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {option} дней
+              </option>
+            ))}
+          </select>
         </label>
 
         <label className="filter-field">

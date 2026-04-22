@@ -2,6 +2,7 @@
 
 import { DragScroll } from '@/components/drag-scroll';
 import { normalizeBrand } from '@/lib/brands';
+import { getRowRevenueDynamic, type RevenueDynamic } from '@/lib/dashboard-dynamics';
 import type { DashboardRow } from '@/types/dashboard';
 
 type DashboardTableProps = {
@@ -51,6 +52,40 @@ function formatMoney(value: number | null, currency: string | null) {
     currency: currency ?? 'RUB',
     maximumFractionDigits: 0
   }).format(value);
+}
+
+function formatSignedPercent(value: number | null) {
+  if (value === null) {
+    return '+∞';
+  }
+
+  return `${value > 0 ? '+' : ''}${new Intl.NumberFormat('ru-RU', {
+    maximumFractionDigits: 1
+  }).format(value)}%`;
+}
+
+function SkuRevenueDynamic({
+  currency,
+  dynamic
+}: {
+  currency: string | null;
+  dynamic: RevenueDynamic | null;
+}) {
+  if (!dynamic) {
+    return <span className="sku-dynamic-empty">—</span>;
+  }
+
+  return (
+    <div className="sku-dynamic-trend">
+      <span className={`sku-dynamic-delta ${dynamic.tone}`}>
+        {formatSignedPercent(dynamic.deltaPercent)}
+      </span>
+      <span className="sku-dynamic-range">
+        {formatMoney(dynamic.previousRevenue, currency)} →{' '}
+        {formatMoney(dynamic.currentRevenue, currency)}
+      </span>
+    </div>
+  );
 }
 
 function formatStockCoverageDays(row: DashboardRow, periodDays: number) {
@@ -146,6 +181,7 @@ export function DashboardTable({
               <th className="numeric">Stock</th>
               <th className="numeric">ТЗ</th>
               <th className="numeric">Price</th>
+              <th className="numeric">Динамика</th>
               <th className="numeric orders-total-heading">Orders total</th>
               {dates.map((date) => (
                 <th className="numeric orders-column-heading" key={date}>
@@ -161,6 +197,7 @@ export function DashboardTable({
                 row.ordersByDay.map((item) => [item.date, item.count] as const)
               );
               const productUrl = getMarketplaceProductUrl(row);
+              const revenueDynamic = getRowRevenueDynamic(row, dates);
 
               return (
                 <tr key={row.productKey}>
@@ -223,6 +260,12 @@ export function DashboardTable({
                   </td>
                   <td className="numeric" data-label="Price">
                     {formatMoney(row.price, row.currency)}
+                  </td>
+                  <td className="numeric" data-label="Динамика">
+                    <SkuRevenueDynamic
+                      currency={row.currency}
+                      dynamic={revenueDynamic}
+                    />
                   </td>
                   <td className="numeric orders-total-cell" data-label="Orders total">
                     <strong>{row.ordersTotal}</strong>

@@ -244,7 +244,7 @@ html[data-theme="dark"] .brand-analytics-card {
 }
 
 .filters-grid-wide {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
 .filter-field {
@@ -1148,7 +1148,7 @@ html[data-theme="dark"] .table-scroll {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  min-width: 1180px;
+  min-width: 1320px;
 }
 
 .dashboard-table thead th {
@@ -1313,6 +1313,38 @@ html[data-theme="dark"] .product-thumb {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 0.75rem;
+}
+
+.sku-dynamic-trend {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  min-width: 142px;
+}
+
+.sku-dynamic-delta {
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.sku-dynamic-delta.up {
+  color: var(--teal);
+}
+
+.sku-dynamic-delta.down {
+  color: var(--accent-dark);
+}
+
+.sku-dynamic-delta.same,
+.sku-dynamic-empty {
+  color: var(--muted);
+}
+
+.sku-dynamic-range {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .orders-day-badge {
@@ -1621,7 +1653,7 @@ html[data-theme="dark"] .orders-day-badge.down {
   }
 
   .dashboard-table {
-    min-width: 1180px;
+    min-width: 1320px;
   }
 
   .brand-table {
@@ -1664,7 +1696,7 @@ html[data-theme="dark"] .orders-day-badge.down {
   }
 
   .dashboard-table {
-    min-width: 1080px;
+    min-width: 1220px;
   }
 
   .brand-table {

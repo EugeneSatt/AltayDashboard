@@ -17,6 +17,7 @@ import {
   normalizeBrand,
   normalizeBrandFilter
 } from '@/lib/brands';
+import { matchesDynamicFilter } from '@/lib/dashboard-dynamics';
 import { DEFAULT_PERIOD_DAYS, sanitizePeriodDays } from '@/lib/date/range';
 import { dashboardApiClient } from '@/lib/http/client';
 import {
@@ -26,7 +27,8 @@ import {
 import type {
   BrandOption,
   DashboardFiltersState,
-  DashboardResponse
+  DashboardResponse,
+  DynamicFilter
 } from '@/types/dashboard';
 
 const FILTERS_STORAGE_KEY = 'dashboard:filters';
@@ -35,6 +37,7 @@ const DEFAULT_FILTERS: DashboardFiltersState = {
   marketplace: 'all',
   periodDays: DEFAULT_PERIOD_DAYS,
   brand: 'all',
+  dynamic: 'all',
   search: ''
 };
 
@@ -97,6 +100,7 @@ function loadSavedFilters(): DashboardFiltersState {
           : 'all',
       periodDays: sanitizePeriodDays(parsed.periodDays),
       brand: normalizeBrandFilter(parsed.brand),
+      dynamic: sanitizeDynamicFilter(parsed.dynamic),
       search: typeof parsed.search === 'string' ? parsed.search : ''
     };
   } catch {
@@ -116,8 +120,13 @@ function matchesSearch(rowText: string, search: string) {
   return rowText.toLowerCase().includes(search.toLowerCase());
 }
 
+function sanitizeDynamicFilter(value: unknown): DynamicFilter {
+  return value === 'up' || value === 'down' || value === 'same' ? value : 'all';
+}
+
 export function DashboardPage() {
   const [filters, setFilters] = useState<DashboardFiltersState>(DEFAULT_FILTERS);
+  const [pendingPeriodDays, setPendingPeriodDays] = useState(DEFAULT_FILTERS.periodDays);
   const [data, setData] = useState<DashboardResponse | null>(null);
   const [isFetching, setIsFetching] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -126,7 +135,10 @@ export function DashboardPage() {
   const deferredSearch = useDeferredValue(filters.search);
 
   useEffect(() => {
-    setFilters(loadSavedFilters());
+    const savedFilters = loadSavedFilters();
+
+    setFilters(savedFilters);
+    setPendingPeriodDays(savedFilters.periodDays);
     setIsHydrated(true);
   }, []);
 
@@ -139,7 +151,7 @@ export function DashboardPage() {
   }, [filters, isHydrated]);
 
   useEffect(() => {
-    if (!isHydrated) {
+    if (!isHydrated || isFetching) {
       return;
     }
 
@@ -163,7 +175,7 @@ export function DashboardPage() {
     return () => {
       isMounted = false;
     };
-  }, [filters.periodDays, isHydrated]);
+  }, [filters.periodDays, isFetching, isHydrated]);
 
   useEffect(() => {
     if (!data || !isHydrated || filters.brand === 'all') {
@@ -196,7 +208,8 @@ export function DashboardPage() {
       typeof crypto !== 'undefined' && 'randomUUID' in crypto
         ? crypto.randomUUID()
         : String(startedAt);
-    const cacheKey = getCacheKey(filters.periodDays);
+    const requestedPeriodDays = sanitizePeriodDays(pendingPeriodDays);
+    const cacheKey = getCacheKey(requestedPeriodDays);
 
     setIsFetching(true);
     setErrorMessage(null);
@@ -204,13 +217,13 @@ export function DashboardPage() {
     try {
       console.info('[dashboard] refresh started', {
         requestId,
-        periodDays: filters.periodDays,
+        periodDays: requestedPeriodDays,
         cacheKey
       });
 
       const response = await dashboardApiClient.get<DashboardResponse>('/dashboard', {
         params: {
-          periodDays: filters.periodDays,
+          periodDays: requestedPeriodDays,
           refreshTs: startedAt
         },
         headers: {
@@ -223,12 +236,12 @@ export function DashboardPage() {
       const normalizedData = normalized.response;
 
       setData(normalizedData);
-      if (normalized.selectedBrand !== filters.brand) {
-        setFilters((current) => ({
-          ...current,
-          brand: normalized.selectedBrand
-        }));
-      }
+      setFilters((current) => ({
+        ...current,
+        periodDays: requestedPeriodDays,
+        brand: normalized.selectedBrand
+      }));
+      setPendingPeriodDays(requestedPeriodDays);
       setHasLoadedLiveData(true);
       await setCachedDashboardResponse(cacheKey, normalizedData);
 
@@ -315,6 +328,14 @@ export function DashboardPage() {
     return baseRows.filter((row) => normalizeBrand(row.brand) === filters.brand);
   }, [baseRows, filters.brand]);
 
+  const tableRows = useMemo(() => {
+    const dates = data?.dates ?? [];
+
+    return filteredRows.filter((row) =>
+      matchesDynamicFilter(row, dates, filters.dynamic)
+    );
+  }, [data?.dates, filteredRows, filters.dynamic]);
+
   return (
     <main className="dashboard-shell">
       <div className="dashboard-topbar">
@@ -329,20 +350,24 @@ export function DashboardPage() {
         filters={filters}
         brandOptions={brandOptions}
         isRefreshing={isFetching}
+        periodDays={pendingPeriodDays}
         onBrandChange={(brand) =>
           setFilters((current) => ({
             ...current,
             brand: normalizeBrandFilter(brand)
           }))
         }
+        onDynamicChange={(dynamic) =>
+          setFilters((current) => ({
+            ...current,
+            dynamic
+          }))
+        }
         onMarketplaceChange={(marketplace) =>
           setFilters((current) => ({ ...current, marketplace }))
         }
         onPeriodDaysChange={(periodDays) =>
-          setFilters((current) => ({
-            ...current,
-            periodDays: sanitizePeriodDays(periodDays)
-          }))
+          setPendingPeriodDays(sanitizePeriodDays(periodDays))
         }
         onSearchChange={(search) =>
           setFilters((current) => ({ ...current, search }))
@@ -380,7 +405,7 @@ export function DashboardPage() {
       />
 
       <DashboardTable
-        rows={filteredRows}
+        rows={tableRows}
         dates={data?.dates ?? []}
         hasData={Boolean(data)}
         isLoading={isFetching && !data}

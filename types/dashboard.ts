@@ -2,6 +2,10 @@ export type Marketplace = 'wb' | 'ozon';
 
 export type MarketplaceFilter = 'all' | Marketplace;
 
+export type DynamicTone = 'up' | 'down' | 'same';
+
+export type DynamicFilter = 'all' | DynamicTone;
+
 export type OrdersByDay = {
   date: string;
   count: number;
@@ -63,6 +67,7 @@ export type DashboardFiltersState = {
   marketplace: MarketplaceFilter;
   periodDays: number;
   brand: string;
+  dynamic: DynamicFilter;
   search: string;
 };
 
