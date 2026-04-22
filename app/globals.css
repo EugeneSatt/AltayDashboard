@@ -480,7 +480,7 @@ html[data-theme="dark"] .theme-switcher {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   margin-top: 18px;
 }
@@ -733,7 +733,10 @@ html[data-theme="dark"] .comparison-card {
 .brand-table-scroll {
   position: relative;
   z-index: 1;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
   border: 1px solid var(--line);
   border-radius: 18px;
   background: var(--panel-strong);
@@ -745,7 +748,7 @@ html[data-theme="dark"] .brand-table-scroll {
 
 .brand-table {
   width: 100%;
-  min-width: 1500px;
+  min-width: 1240px;
   border-collapse: separate;
   border-spacing: 0;
 }
@@ -760,7 +763,8 @@ html[data-theme="dark"] .brand-table-scroll {
     linear-gradient(180deg, rgba(228, 237, 226, 0.97), rgba(221, 231, 221, 0.95));
   border-bottom: 1px solid var(--line);
   color: var(--muted);
-  text-align: left;
+  text-align: center;
+  vertical-align: middle;
   white-space: nowrap;
   font-size: 0.84rem;
 }
@@ -774,7 +778,12 @@ html[data-theme="dark"] .brand-table thead th {
 .brand-table tbody td {
   padding: 13px 12px;
   border-bottom: 1px solid rgba(53, 78, 59, 0.08);
-  vertical-align: top;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.brand-table .numeric {
+  text-align: center;
 }
 
 .brand-table tbody tr:hover td {
@@ -819,6 +828,38 @@ html[data-theme="dark"] .brand-table thead th {
   background: currentColor;
   vertical-align: 0.12em;
   opacity: 0.62;
+}
+
+.brand-revenue-trend {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  min-width: 148px;
+}
+
+.brand-revenue-delta {
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.brand-revenue-delta.up {
+  color: var(--teal);
+}
+
+.brand-revenue-delta.down {
+  color: var(--accent-dark);
+}
+
+.brand-revenue-delta.same,
+.brand-revenue-empty {
+  color: var(--muted);
+}
+
+.brand-revenue-range {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .table-toolbar {
@@ -1070,7 +1111,10 @@ html[data-theme="dark"] .chart-grid-line {
 }
 
 .table-scroll {
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
   border-radius: 18px;
   border: 1px solid var(--line);
   background: var(--panel-strong);
@@ -1078,6 +1122,26 @@ html[data-theme="dark"] .chart-grid-line {
 
 html[data-theme="dark"] .table-scroll {
   background: rgba(18, 28, 24, 0.96);
+}
+
+.drag-scroll {
+  cursor: grab;
+  touch-action: pan-y;
+  scrollbar-gutter: stable;
+}
+
+.drag-scroll.is-dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.drag-scroll.is-dragging * {
+  cursor: grabbing;
+}
+
+.drag-scroll img {
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .dashboard-table {
@@ -1094,7 +1158,8 @@ html[data-theme="dark"] .table-scroll {
   padding: 14px 12px;
   background: linear-gradient(180deg, rgba(228, 237, 226, 0.97), rgba(221, 231, 221, 0.95));
   border-bottom: 1px solid var(--line);
-  text-align: left;
+  text-align: center;
+  vertical-align: middle;
   white-space: nowrap;
   font-size: 0.86rem;
   color: var(--muted);
@@ -1131,7 +1196,17 @@ html[data-theme="dark"] .dashboard-table thead th.orders-total-heading {
 .dashboard-table tbody td {
   padding: 13px 12px;
   border-bottom: 1px solid rgba(53, 78, 59, 0.08);
-  vertical-align: top;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.dashboard-table .numeric {
+  text-align: center;
+}
+
+.dashboard-table .product-cell {
+  justify-content: center;
+  text-align: center;
 }
 
 .dashboard-table tbody td.orders-column-cell {
@@ -1542,9 +1617,6 @@ html[data-theme="dark"] .orders-day-badge.down {
 
   .table-scroll,
   .brand-table-scroll {
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
     border-radius: 16px;
   }
 
@@ -1553,7 +1625,7 @@ html[data-theme="dark"] .orders-day-badge.down {
   }
 
   .brand-table {
-    min-width: 1500px;
+    min-width: 1240px;
   }
 
   .dashboard-table thead th,
@@ -1596,6 +1668,6 @@ html[data-theme="dark"] .orders-day-badge.down {
   }
 
   .brand-table {
-    min-width: 1380px;
+    min-width: 1120px;
   }
 }

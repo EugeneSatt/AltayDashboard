@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { createCanonicalBrandMap, getCanonicalBrand } from '@/lib/brands';
 import { getDateRange } from '@/lib/date/range';
 import { serializeError } from '@/lib/errors/serialize-error';
 import { logInfo, summarizeMarketplaceResult, summarizeRows } from '@/lib/logger/server';
@@ -51,6 +52,23 @@ function sortRows(rows: DashboardRow[]) {
   );
 }
 
+function normalizeRowBrands(rows: DashboardRow[]) {
+  const canonicalByBrand = createCanonicalBrandMap(rows.map((row) => row.brand));
+
+  return rows.map((row) => {
+    const brand = getCanonicalBrand(row.brand, canonicalByBrand);
+
+    if (brand === row.brand) {
+      return row;
+    }
+
+    return {
+      ...row,
+      brand
+    };
+  });
+}
+
 export async function getDashboardData(options: DashboardOptions): Promise<DashboardResponse> {
   const marketplace = options.marketplace ?? 'all';
   const periodDays = options.periodDays;
@@ -87,9 +105,11 @@ export async function getDashboardData(options: DashboardOptions): Promise<Dashb
   });
 
   const rows = sortRows(
-    successfulResults
-      .flatMap((result) => result.rows)
-      .filter((row) => matchesSearch(row, search))
+    normalizeRowBrands(
+      successfulResults
+        .flatMap((result) => result.rows)
+        .filter((row) => matchesSearch(row, search))
+    )
   );
 
   logInfo('service:dashboard', 'Marketplace results collected', {

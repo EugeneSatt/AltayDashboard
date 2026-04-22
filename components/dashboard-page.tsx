@@ -10,6 +10,13 @@ import { OrdersChart } from '@/components/orders-chart';
 import { DashboardStatus } from '@/components/dashboard-status';
 import { DashboardTable } from '@/components/dashboard-table';
 import { ThemeToggle } from '@/components/theme-toggle';
+import {
+  createCanonicalBrandMap,
+  getCanonicalBrand,
+  getCanonicalBrandFilter,
+  normalizeBrand,
+  normalizeBrandFilter
+} from '@/lib/brands';
 import { DEFAULT_PERIOD_DAYS, sanitizePeriodDays } from '@/lib/date/range';
 import { dashboardApiClient } from '@/lib/http/client';
 import {
@@ -35,6 +42,40 @@ function getCacheKey(periodDays: number) {
   return `dashboard:${periodDays}`;
 }
 
+function normalizeDashboardResponseBrands(
+  response: DashboardResponse,
+  selectedBrand: string
+) {
+  const brandValues = response.rows.map((row) => row.brand);
+
+  if (selectedBrand !== 'all') {
+    brandValues.push(selectedBrand);
+  }
+
+  const canonicalByBrand = createCanonicalBrandMap(brandValues);
+  const canonicalSelectedBrand = getCanonicalBrandFilter(selectedBrand, canonicalByBrand);
+  let hasChanged = false;
+  const rows = response.rows.map((row) => {
+    const brand = getCanonicalBrand(row.brand, canonicalByBrand);
+
+    if (brand === row.brand) {
+      return row;
+    }
+
+    hasChanged = true;
+
+    return {
+      ...row,
+      brand
+    };
+  });
+
+  return {
+    response: hasChanged ? { ...response, rows } : response,
+    selectedBrand: canonicalSelectedBrand
+  };
+}
+
 function loadSavedFilters(): DashboardFiltersState {
   if (typeof window === 'undefined') {
     return DEFAULT_FILTERS;
@@ -55,7 +96,7 @@ function loadSavedFilters(): DashboardFiltersState {
           ? parsed.marketplace
           : 'all',
       periodDays: sanitizePeriodDays(parsed.periodDays),
-      brand: typeof parsed.brand === 'string' && parsed.brand.trim() ? parsed.brand : 'all',
+      brand: normalizeBrandFilter(parsed.brand),
       search: typeof parsed.search === 'string' ? parsed.search : ''
     };
   } catch {
@@ -109,7 +150,8 @@ export function DashboardPage() {
         const cached = await getCachedDashboardResponse(getCacheKey(filters.periodDays));
 
         if (cached && isMounted) {
-          setData(cached);
+          const normalized = normalizeDashboardResponseBrands(cached, 'all');
+          setData(normalized.response);
         }
       } catch {
         // Cache restore is optional and should not break the page.
@@ -122,6 +164,27 @@ export function DashboardPage() {
       isMounted = false;
     };
   }, [filters.periodDays, isHydrated]);
+
+  useEffect(() => {
+    if (!data || !isHydrated || filters.brand === 'all') {
+      return;
+    }
+
+    const canonicalByBrand = createCanonicalBrandMap([
+      ...data.rows.map((row) => row.brand),
+      filters.brand
+    ]);
+    const canonicalBrand = getCanonicalBrandFilter(filters.brand, canonicalByBrand);
+
+    if (canonicalBrand === filters.brand) {
+      return;
+    }
+
+    setFilters((current) => ({
+      ...current,
+      brand: canonicalBrand
+    }));
+  }, [data, filters.brand, isHydrated]);
 
   async function loadDashboard() {
     if (!isHydrated) {
@@ -156,17 +219,26 @@ export function DashboardPage() {
         }
       });
 
-      setData(response.data);
+      const normalized = normalizeDashboardResponseBrands(response.data, filters.brand);
+      const normalizedData = normalized.response;
+
+      setData(normalizedData);
+      if (normalized.selectedBrand !== filters.brand) {
+        setFilters((current) => ({
+          ...current,
+          brand: normalized.selectedBrand
+        }));
+      }
       setHasLoadedLiveData(true);
-      await setCachedDashboardResponse(cacheKey, response.data);
+      await setCachedDashboardResponse(cacheKey, normalizedData);
 
       console.info('[dashboard] refresh completed', {
         requestId,
         durationMs: Date.now() - startedAt,
-        rows: response.data.rows.length,
-        updatedAt: response.data.updatedAt,
-        source: response.data.meta.source,
-        errors: response.data.meta.errors.length
+        rows: normalizedData.rows.length,
+        updatedAt: normalizedData.updatedAt,
+        source: normalizedData.meta.source,
+        errors: normalizedData.meta.errors.length
       });
     } catch (error) {
       console.error('[dashboard] refresh failed', {
@@ -193,7 +265,7 @@ export function DashboardPage() {
     return Array.from(
       new Set(
         data.rows
-          .map((row) => row.brand?.trim())
+          .map((row) => normalizeBrand(row.brand))
           .filter((brand): brand is string => Boolean(brand))
       )
     )
@@ -240,7 +312,7 @@ export function DashboardPage() {
       return baseRows;
     }
 
-    return baseRows.filter((row) => row.brand === filters.brand);
+    return baseRows.filter((row) => normalizeBrand(row.brand) === filters.brand);
   }, [baseRows, filters.brand]);
 
   return (
@@ -260,7 +332,7 @@ export function DashboardPage() {
         onBrandChange={(brand) =>
           setFilters((current) => ({
             ...current,
-            brand
+            brand: normalizeBrandFilter(brand)
           }))
         }
         onMarketplaceChange={(marketplace) =>

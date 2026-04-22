@@ -1,5 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 
+import { DragScroll } from '@/components/drag-scroll';
+import { normalizeBrand } from '@/lib/brands';
 import type { DashboardRow } from '@/types/dashboard';
 
 type DashboardTableProps = {
@@ -132,7 +134,7 @@ export function DashboardTable({
         <span className="badge">{dates.length} дней в периоде</span>
       </div>
 
-      <div className="table-scroll">
+      <DragScroll className="table-scroll">
         <table className="dashboard-table">
           <thead>
             <tr>
@@ -210,7 +212,7 @@ export function DashboardTable({
                       </div>
                     </div>
                   </td>
-                  <td data-label="Бренд">{row.brand ?? '—'}</td>
+                  <td data-label="Бренд">{normalizeBrand(row.brand) ?? '—'}</td>
                   <td data-label="sku">{getSkuValue(row)}</td>
                   <td data-label="Артикул WB/OZ">{getMarketplaceArticle(row)}</td>
                   <td className="numeric" data-label="Stock">
@@ -248,7 +250,7 @@ export function DashboardTable({
             })}
           </tbody>
         </table>
-      </div>
+      </DragScroll>
     </section>
   );
 }

@@ -1,5 +1,7 @@
 'use client';
 
+import { DragScroll } from '@/components/drag-scroll';
+import { createCanonicalBrandMap, getCanonicalBrand } from '@/lib/brands';
 import type { DashboardRow, Marketplace } from '@/types/dashboard';
 
 type BrandAnalyticsProps = {
@@ -58,7 +60,7 @@ type Comparison = {
   revenueDeltaPercent: number | null;
 };
 
-const UNKNOWN_BRAND = 'Без бренда';
+const UNKNOWN_BRAND = 'БЕЗ БРЕНДА';
 
 function createMutableSummary(label: string): MutableSummary {
   return {
@@ -199,9 +201,10 @@ function summarizeRows(
 
 function summarizeBrands(rows: DashboardRow[], dates: string[], denominatorOrders: number) {
   const groups = new Map<string, MutableSummary>();
+  const canonicalByBrand = createCanonicalBrandMap(rows.map((row) => row.brand));
 
   for (const row of rows) {
-    const brand = row.brand?.trim() || UNKNOWN_BRAND;
+    const brand = getCanonicalBrand(row.brand, canonicalByBrand) ?? UNKNOWN_BRAND;
     const summary = groups.get(brand) ?? createMutableSummary(brand);
 
     consumeRow(summary, row, dates);
@@ -255,6 +258,30 @@ function createComparison(
     currentRevenue: current.revenue,
     revenueDeltaPercent: getDeltaPercent(current.revenue, previous.revenue)
   };
+}
+
+function createBrandComparisonMap(
+  rows: DashboardRow[],
+  previousDates: string[],
+  currentDates: string[]
+) {
+  const groups = new Map<string, DashboardRow[]>();
+  const canonicalByBrand = createCanonicalBrandMap(rows.map((row) => row.brand));
+
+  for (const row of rows) {
+    const brand = getCanonicalBrand(row.brand, canonicalByBrand) ?? UNKNOWN_BRAND;
+    const groupRows = groups.get(brand) ?? [];
+
+    groupRows.push(row);
+    groups.set(brand, groupRows);
+  }
+
+  return new Map(
+    Array.from(groups.entries()).map(([brand, brandRows]) => [
+      brand,
+      createComparison(brand, brandRows, previousDates, currentDates)
+    ])
+  );
 }
 
 function formatDate(value: string) {
@@ -336,6 +363,14 @@ function getDeltaTone(value: number | null) {
   return value > 0 ? 'up' : 'down';
 }
 
+function getRevenueComparisonTone(comparison: Comparison) {
+  if (comparison.currentRevenue === comparison.previousRevenue) {
+    return 'same';
+  }
+
+  return comparison.currentRevenue > comparison.previousRevenue ? 'up' : 'down';
+}
+
 function SummaryMetric({
   label,
   value,
@@ -372,8 +407,6 @@ function MarketplaceCard({ summary }: { summary: Summary }) {
         <strong>{formatCoverageDays(summary.coverageDays)} дн.</strong>
         <span>Средняя цена</span>
         <strong>{formatMoney(summary.averagePrice)}</strong>
-        <span>Цена с СПП</span>
-        <strong>{formatMoney(summary.averagePriceWithSpp)}</strong>
         <span>Выручка</span>
         <strong>{formatMoney(summary.revenue)}</strong>
       </div>
@@ -404,6 +437,25 @@ function ComparisonCard({ comparison }: { comparison: Comparison }) {
         </span>
       </div>
     </article>
+  );
+}
+
+function BrandRevenueTrend({ comparison }: { comparison?: Comparison }) {
+  if (!comparison) {
+    return <span className="brand-revenue-empty">—</span>;
+  }
+
+  const tone = getRevenueComparisonTone(comparison);
+
+  return (
+    <div className="brand-revenue-trend">
+      <span className={`brand-revenue-delta ${tone}`}>
+        {formatSignedPercent(comparison.revenueDeltaPercent)}
+      </span>
+      <span className="brand-revenue-range">
+        {formatMoney(comparison.previousRevenue)} → {formatMoney(comparison.currentRevenue)}
+      </span>
+    </div>
   );
 }
 
@@ -449,6 +501,9 @@ export function BrandAnalytics({
     )
   ];
   const comparisonDates = getComparisonDates(dates);
+  const brandRevenueComparisons = comparisonDates
+    ? createBrandComparisonMap(rows, comparisonDates.previous, comparisonDates.current)
+    : new Map<string, Comparison>();
   const comparisons = comparisonDates
     ? [
         createComparison('Все', rows, comparisonDates.previous, comparisonDates.current),
@@ -493,18 +548,6 @@ export function BrandAnalytics({
           value={formatNumber(totalSummary.stock)}
           note={`${formatCoverageDays(totalSummary.coverageDays)} дн. ТЗ`}
           tone="stock"
-        />
-        <SummaryMetric
-          label="Средняя цена"
-          value={formatMoney(totalSummary.averagePrice)}
-          note={`${formatMoney(totalSummary.averagePriceWithSpp)} с СПП`}
-          tone="price"
-        />
-        <SummaryMetric
-          label="СПП скидка"
-          value={formatPlainPercent(totalSummary.sppDiscountPercent)}
-          note={`${formatMoney(totalSummary.sppDiscountValue)} на заказ`}
-          tone="spp"
         />
         <SummaryMetric
           label="Выручка"
@@ -554,7 +597,7 @@ export function BrandAnalytics({
         <h3>{selectedBrand === 'all' ? 'Бренды' : 'Выбранный бренд'}</h3>
         <span>Доля считается от заказов текущей выборки</span>
       </div>
-      <div className="brand-table-scroll">
+      <DragScroll className="brand-table-scroll">
         <table className="brand-table">
           <thead>
             <tr>
@@ -564,11 +607,8 @@ export function BrandAnalytics({
               <th className="numeric">Остаток</th>
               <th className="numeric">ТЗ</th>
               <th className="numeric">Сред./день</th>
-              <th className="numeric">Сред. цена</th>
-              <th className="numeric">Сред. СПП</th>
-              <th className="numeric">СПП %</th>
               <th className="numeric">Выручка</th>
-              <th className="numeric">Выручка СПП</th>
+              <th className="numeric">Динамика</th>
               <th className="numeric">WB</th>
               <th className="numeric">Ozon</th>
               <th className="numeric">SKUs</th>
@@ -577,65 +617,60 @@ export function BrandAnalytics({
             </tr>
           </thead>
           <tbody>
-            {brandSummaries.map((summary) => (
-              <tr key={summary.label}>
-                <td data-label="Бренд">
-                  <strong>{summary.label}</strong>
-                  <div className="cell-subtitle">
-                    WB SKU: {formatNumber(summary.wbSkus)} · Ozon SKU:{' '}
-                    {formatNumber(summary.ozonSkus)}
-                  </div>
-                </td>
-                <td className="numeric brand-value-strong orders" data-label="Заказы">
-                  {formatNumber(summary.orders)}
-                </td>
-                <td className="numeric brand-value-strong share" data-label="Доля">
-                  {formatPlainPercent(summary.ordersShare)}
-                </td>
-                <td className="numeric" data-label="Остаток">
-                  {formatNumber(summary.stock)}
-                </td>
-                <td className="numeric brand-value-strong coverage" data-label="ТЗ">
-                  {formatCoverageDays(summary.coverageDays)}
-                </td>
-                <td className="numeric" data-label="Сред./день">
-                  {formatDecimal(summary.averageDailyOrders)}
-                </td>
-                <td className="numeric brand-value-strong price" data-label="Сред. цена">
-                  {formatMoney(summary.averagePrice)}
-                </td>
-                <td className="numeric brand-value-strong spp" data-label="Сред. СПП">
-                  {formatMoney(summary.averagePriceWithSpp)}
-                </td>
-                <td className="numeric brand-value-strong discount" data-label="СПП %">
-                  {formatPlainPercent(summary.sppDiscountPercent)}
-                </td>
-                <td className="numeric brand-value-strong revenue" data-label="Выручка">
-                  {formatMoney(summary.revenue)}
-                </td>
-                <td className="numeric brand-value-strong revenue-spp" data-label="Выручка СПП">
-                  {formatMoney(summary.revenueWithSpp)}
-                </td>
-                <td className="numeric" data-label="WB">
-                  {formatNumber(summary.wbOrders)}
-                </td>
-                <td className="numeric" data-label="Ozon">
-                  {formatNumber(summary.ozonOrders)}
-                </td>
-                <td className="numeric" data-label="SKUs">
-                  {formatNumber(summary.skuCount)}
-                </td>
-                <td className="numeric brand-value-strong risk" data-label="Без продаж">
-                  {formatNumber(summary.skuWithoutSales)}
-                </td>
-                <td className="numeric" data-label="Оборач.">
-                  {formatDecimal(summary.turnover)}
-                </td>
-              </tr>
-            ))}
+            {brandSummaries.map((summary) => {
+              const revenueComparison = brandRevenueComparisons.get(summary.label);
+
+              return (
+                <tr key={summary.label}>
+                  <td data-label="Бренд">
+                    <strong>{summary.label}</strong>
+                    <div className="cell-subtitle">
+                      WB SKU: {formatNumber(summary.wbSkus)} · Ozon SKU:{' '}
+                      {formatNumber(summary.ozonSkus)}
+                    </div>
+                  </td>
+                  <td className="numeric brand-value-strong orders" data-label="Заказы">
+                    {formatNumber(summary.orders)}
+                  </td>
+                  <td className="numeric brand-value-strong share" data-label="Доля">
+                    {formatPlainPercent(summary.ordersShare)}
+                  </td>
+                  <td className="numeric" data-label="Остаток">
+                    {formatNumber(summary.stock)}
+                  </td>
+                  <td className="numeric brand-value-strong coverage" data-label="ТЗ">
+                    {formatCoverageDays(summary.coverageDays)}
+                  </td>
+                  <td className="numeric" data-label="Сред./день">
+                    {formatDecimal(summary.averageDailyOrders)}
+                  </td>
+                  <td className="numeric brand-value-strong revenue" data-label="Выручка">
+                    {formatMoney(summary.revenue)}
+                  </td>
+                  <td className="numeric" data-label="Динамика">
+                    <BrandRevenueTrend comparison={revenueComparison} />
+                  </td>
+                  <td className="numeric" data-label="WB">
+                    {formatNumber(summary.wbOrders)}
+                  </td>
+                  <td className="numeric" data-label="Ozon">
+                    {formatNumber(summary.ozonOrders)}
+                  </td>
+                  <td className="numeric" data-label="SKUs">
+                    {formatNumber(summary.skuCount)}
+                  </td>
+                  <td className="numeric brand-value-strong risk" data-label="Без продаж">
+                    {formatNumber(summary.skuWithoutSales)}
+                  </td>
+                  <td className="numeric" data-label="Оборач.">
+                    {formatDecimal(summary.turnover)}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
-      </div>
+      </DragScroll>
     </section>
   );
 }
